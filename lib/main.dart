@@ -1,23 +1,33 @@
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/material.dart'; // để gọi WidgetsFlutterBinding
+
 import 'package:zent_gemini/gemini_config.dart';
 import 'package:zent_gemini/gemini_service.dart';
 
 void main() async {
-  final config = GeminiConfig(
-      apiKey: 'AIzaSyDuc_13fXJlfwVMc41N31ovULEmUeW1vgE',
-      model: 'gemini-2.0-flash'
-  ); // Hoặc model khác
-  final geminiAI = GeminiAI(config);
+  WidgetsFlutterBinding.ensureInitialized(); // 🔥 Thêm dòng này để kích hoạt rootBundle
 
+  final config = GeminiConfig(
+    apiKey: 'AIzaSyDuc_13fXJlfwVMc41N31ovULEmUeW1vgE',
+    model: 'gemini-2.0-flash',
+  );
+
+  final geminiAI = GeminiAI(config);
   geminiAI.setSystemInstruction = 'Bạn tên là Triệu';
 
   try {
-    String? response1 = await geminiAI.sendMessage('Bạn tên là gì, Tôi tên là Just');
+    final image = await loadImageFromAssets('assets/img.png');
+    String? response1 = await geminiAI.generateContent(Input(textPrompt: 'Đây là nhân vật nào', image: image));
     print('Model: $response1');
 
-    String? response2 = await geminiAI.sendMessage('Tên của tôi có mấy chữ cái');
-    print('Model: $response2');
-
+    final his = geminiAI.chatHistory;
+    his.forEach((e) => print(e.toJson()));
   } catch (e) {
     print('Lỗi: $e');
   }
+}
+Future<Uint8List> loadImageFromAssets(String assetPath) async {
+  final byteData = await rootBundle.load(assetPath);
+  return byteData.buffer.asUint8List();
 }

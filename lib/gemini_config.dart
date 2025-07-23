@@ -1,4 +1,4 @@
-/// Class chứa các cấu hình cần thiết để kết nối với Gemini API.
+
 class GeminiConfig {
   /// API key để xác thực với Gemini API.
   final String apiKey;
