@@ -8,7 +8,16 @@ import 'dart:typed_data';
 class Input {
   final String textPrompt;
   final Uint8List? image;
-  Input({required this.textPrompt, this.image});
+  final Uint8List? pdf;
+  Input({
+    required this.textPrompt,
+    this.image,
+    this.pdf
+  });
+
+  factory Input.text(String textPrompt) => Input(textPrompt: textPrompt);
+  factory Input.image(String textPrompt, Uint8List image) => Input(textPrompt: textPrompt, image: image);
+  factory Input.pdf(String textPrompt, Uint8List pdf) => Input(textPrompt: textPrompt, pdf: pdf);
 }
 
 class GeminiAI {
@@ -34,7 +43,11 @@ class GeminiAI {
   Future<Content> _buildContentUser(Input input) async {
     if(input.image != null) {
       return Content.userImage(input.textPrompt, input.image!);
-    } else {
+    }
+    else if(input.pdf != null) {
+      return Content.userPdf(input.textPrompt, input.pdf!);
+    }
+    else {
       return Content.userText(input.textPrompt);
     }
   }

@@ -8,12 +8,17 @@ class Content {
   Content({required this.role, required this.parts});
 
   String? get text {
-    return parts[0]['text'] as String?;
+    for(final part in parts) {
+      if(part['text'] != null) {
+        return part['text'] as String?;
+      }
+    }
+    return null;
   }
 
   Uint8List? get image {
     for(final part in parts) {
-      if(part['inline_data'] != null) {
+      if(part['inline_data'] != null && part['inline_data']['mime_type'] == 'image/jpeg') {
         return base64Decode(part['inline_data']['data'] as String);
       }
     }
@@ -42,13 +47,27 @@ class Content {
     final Uint8List bytes = image;
     final base64Image = base64Encode(bytes);
     return Content(role: 'user', parts: [
-      {'text': textPrompt},
       {
         'inline_data': {
           'mime_type': 'image/jpeg',
           'data': base64Image,
         }
-      }
+      },
+      {'text': textPrompt},
+    ]);
+  }
+
+  factory Content.userPdf(String? textPrompt, Uint8List pdf) {
+    final Uint8List bytes = pdf;
+    final base64Pdf = base64Encode(bytes);
+    return Content(role: 'user', parts: [
+      {
+        'inline_data': {
+          'mime_type': 'application/pdf',
+          'data': base64Pdf,
+        }
+      },
+      {'text': textPrompt},
     ]);
   }
 }
