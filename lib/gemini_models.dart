@@ -34,6 +34,8 @@ class Content {
     );
   }
 
+  factory Content.modelText(String textPrompt) => Content(role: 'model', parts: [{'text': textPrompt}]);
+
   factory Content.userText(String textPrompt) => Content(role: 'user', parts: [{'text': textPrompt}]);
 
   factory Content.userImage(String? textPrompt, Uint8List image) {
