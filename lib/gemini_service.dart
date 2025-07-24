@@ -27,8 +27,7 @@ class GeminiAI {
   /// Constructor.
   GeminiAI(this._config);
 
-  ///-  [_chatHistory] Lịch sử trò chuyện
-  ///-  Lưu trữ bắt buộc kiểu [Content]
+  /// Lịch sử trò chuyện
   List<Content> _chatHistory = [];
   set setHistory(List<Content> history) => _chatHistory = history;
   List<Content> get chatHistory => _chatHistory;
@@ -37,38 +36,57 @@ class GeminiAI {
   String? _systemInstruction;
   set setSystemInstruction(String instruction) => _systemInstruction = instruction;
 
-  //- Tạo content user  -----------------------------------------------------------------
-  /// [textPrompt] - đoạn văn bản prompt
-  /// [image] - tạo content câu hỏi bằng hình ảnh
-  Future<Content> _buildContentUser(Input input) async {
-    if(input.image != null) {
-      return Content.userImage(input.textPrompt, input.image!);
-    }
-    else if(input.pdf != null) {
-      return Content.userPdf(input.textPrompt, input.pdf!);
-    }
-    else {
-      return Content.userText(input.textPrompt);
-    }
-  }
+  /// Chế độ search
+  bool _googleSearch = false;
+  set setGoogleSearch(bool enable) => _googleSearch = enable;
+  bool get googleSearch => _googleSearch;
 
-  //- Đầu ra văn bản  ----------------------------------------------------------------------
-  Future<String?> generateContent(Input input) async {
-    //- Cấu hình nội dung -
-    final payload = <String, dynamic>{};
-    if (_systemInstruction != null) {
-      payload['system_instruction'] = {'parts': [{'text': _systemInstruction}]};
-    }
-    final content = await _buildContentUser(input);
-    payload['contents'] = [content.toJson()];
-
-    //- Cấu hình request -
-    final url = Uri.parse('${_config.baseUrl}:generateContent');
-    final headers = {
+  //- Tạo nội dung request  -----------------------------------------------------------------
+  Map<String, String>? _buildHeaders() {
+    return {
       'Content-Type': 'application/json',
       'x-goog-api-key': _config.apiKey,
     };
-    final body = jsonEncode(payload);
+  }
+
+  String _buildBody(Input input) {
+    final payload = <String, dynamic>{};
+
+    if (_systemInstruction != null) {
+      payload['system_instruction'] = {'parts': [{'text': _systemInstruction}]};
+    }
+    if(_googleSearch) {
+      payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
+    }
+    
+    final Content content;
+    if(input.image != null) {
+      content = Content.userImage(input.textPrompt, input.image!);
+    }
+    else if(input.pdf != null) {
+      content = Content.userPdf(input.textPrompt, input.pdf!);
+    }
+    else {
+      content = Content.userText(input.textPrompt);
+    }
+    final contents = <Map<String, dynamic>>[];
+
+    if (_chatHistory.isNotEmpty) {
+      contents.addAll(_chatHistory.map((c) => c.toJson()));
+    }
+    contents.add(content.toJson());
+    payload['contents'] = contents;
+    
+    return jsonEncode(payload);
+  }
+
+  //- ĐẦU RA VĂN BẢN  ----------------------------------------------------------------------
+  ///--------------------------------------------------------------------------------------
+  //- Tạo văn bản --------------------------------------------------------------
+  Future<String?> generateContent(Input input) async {
+    final url = Uri.parse('${_config.baseUrl}:generateContent');
+    final headers = _buildHeaders();
+    final body = _buildBody(input);
 
     //- Kết quả -
     final response = await http.post(url, headers: headers, body: body);
@@ -80,26 +98,12 @@ class GeminiAI {
     }
   }
 
+  //- Trò chuyện  ---------------------------------------------------------------
   Future<String?> sendMessage(Input input) async {
-    //- Cấu hình nội dung -
-    final userContent = await _buildContentUser(input);
-    _chatHistory.add(userContent);
-    final payload = <String, dynamic>{
-      'contents': _chatHistory.map((content) => content.toJson()).toList(),
-    };
-    if (_systemInstruction != null) {
-      payload['system_instruction'] = {'parts': [{'text': _systemInstruction}]};
-    }
-
-    //- Cấu hình request  -
     final url = Uri.parse('${_config.baseUrl}:generateContent');
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': _config.apiKey,
-    };
-    final body = jsonEncode(payload);
+    final headers = _buildHeaders();
+    final body = _buildBody(input);
 
-    //- Xu ly ket qua -
     final response = await http.post(url, headers: headers, body: body);
     if (response.statusCode == 200) {
       final content = _extractContentFromResponse(jsonDecode(response.body) as Map<String, dynamic>);
@@ -115,22 +119,12 @@ class GeminiAI {
   }
 
   Stream<String?> streamGenerateContent(Input input) async* {
-    final userContent = await _buildContentUser(input);
-    _chatHistory.add(userContent);
-    final payload = <String, dynamic>{
-      'contents': _chatHistory.map((content) => content.toJson()).toList(),
-    };
-    if (_systemInstruction != null) {
-      payload['system_instruction'] = {'parts': [{'text': _systemInstruction}]};
-    }
-
-    //- Cấu hình request  -
     final url = Uri.parse('${_config.baseUrl.replaceFirst(_config.model, 'gemini-2.0-flash')}:streamGenerateContent?alt=sse');
     final headers = {
       'Content-Type': 'application/json',
       'x-goog-api-key': _config.apiKey,
     };
-    final body = jsonEncode(payload);
+    final body = _buildBody(input);
 
     try {
       final request = http.Request('POST', url);
