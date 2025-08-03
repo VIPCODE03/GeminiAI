@@ -32,8 +32,6 @@ Future<Uint8List> _compressImage(Uint8List inputBytes) async {
   return Uint8List.fromList(result);
 }
 
-String _fmt(int bytes) => 'GeminiAI-file-size: ${(bytes / 1024).toStringAsFixed(1)} KB';
-
 class GeminiAI {
   /// Cấu hình
   final GeminiConfig _config;
@@ -76,11 +74,9 @@ class GeminiAI {
     final Content content;
     if(input.image != null) {
       final imageCompress = await _compressImage(input.image!);
+      final int byteSize = imageCompress.lengthInBytes;
+      print('📦 Kích thước image: $byteSize bytes (${(byteSize / 1024).toStringAsFixed(2)} KB)');
       content = Content.userImage(input.textPrompt, imageCompress);
-      if(kDebugMode) {
-        print(_fmt(imageCompress.length));
-        print(_fmt(content.image!.length));
-      }
     }
     else if(input.pdf != null) {
       content = Content.userPdf(input.textPrompt, input.pdf!);
