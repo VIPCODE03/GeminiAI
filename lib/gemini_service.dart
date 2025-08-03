@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:zent_gemini/gemini_config.dart';
 import 'package:zent_gemini/gemini_exception.dart';
@@ -18,6 +19,23 @@ class Input {
   factory Input.text(String textPrompt) => Input(textPrompt: textPrompt);
   factory Input.image(String textPrompt, Uint8List image) => Input(textPrompt: textPrompt, image: image);
   factory Input.pdf(String textPrompt, Uint8List pdf) => Input(textPrompt: textPrompt, pdf: pdf);
+}
+
+Future<Uint8List> _compressImageBytes(
+    Uint8List imageBytes, {
+      int maxWidth = 800,
+      int maxHeight = 600,
+      int quality = 70,
+      CompressFormat format = CompressFormat.webp,
+    }) async {
+  final result = await FlutterImageCompress.compressWithList(
+    imageBytes,
+    minWidth: maxWidth,
+    minHeight: maxHeight,
+    quality: quality,
+    format: format,
+  );
+  return Uint8List.fromList(result);
 }
 
 class GeminiAI {
@@ -42,14 +60,14 @@ class GeminiAI {
   bool get googleSearch => _googleSearch;
 
   //- Tạo nội dung request  -----------------------------------------------------------------
-  Map<String, String>? _buildHeaders() {
+  Map<String, String> _buildHeaders() {
     return {
       'Content-Type': 'application/json',
       'x-goog-api-key': _config.apiKey,
     };
   }
 
-  String _buildBody(Input input) {
+  Future<String> _buildBody(Input input) async {
     final payload = <String, dynamic>{};
 
     if (_systemInstruction != null) {
@@ -61,7 +79,8 @@ class GeminiAI {
     
     final Content content;
     if(input.image != null) {
-      content = Content.userImage(input.textPrompt, input.image!);
+      final imageCompress = await _compressImageBytes(input.image!);
+      content = Content.userImage(input.textPrompt, imageCompress);
     }
     else if(input.pdf != null) {
       content = Content.userPdf(input.textPrompt, input.pdf!);
@@ -86,7 +105,7 @@ class GeminiAI {
   Future<String?> generateContent(Input input) async {
     final url = Uri.parse('${_config.baseUrl}:generateContent');
     final headers = _buildHeaders();
-    final body = _buildBody(input);
+    final body = await _buildBody(input);
 
     //- Kết quả -
     final response = await http.post(url, headers: headers, body: body);
@@ -102,7 +121,7 @@ class GeminiAI {
   Future<String?> sendMessage(Input input) async {
     final url = Uri.parse('${_config.baseUrl}:generateContent');
     final headers = _buildHeaders();
-    final body = _buildBody(input);
+    final body = await _buildBody(input);
 
     final response = await http.post(url, headers: headers, body: body);
     if (response.statusCode == 200) {
@@ -120,11 +139,8 @@ class GeminiAI {
 
   Stream<String?> streamGenerateContent(Input input) async* {
     final url = Uri.parse('${_config.baseUrl.replaceFirst(_config.model, 'gemini-2.0-flash')}:streamGenerateContent?alt=sse');
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': _config.apiKey,
-    };
-    final body = _buildBody(input);
+    final headers = _buildHeaders();
+    final body =  await _buildBody(input);
 
     try {
       final request = http.Request('POST', url);
