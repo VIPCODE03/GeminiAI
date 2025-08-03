@@ -46,6 +46,12 @@ class Content {
   factory Content.userImage(String? textPrompt, Uint8List image) {
     final Uint8List bytes = image;
     final base64Image = base64Encode(bytes);
+
+    final int byteSize = image.lengthInBytes;
+    print('📦 Kích thước Uint8List: $byteSize bytes (${(byteSize / 1024).toStringAsFixed(2)} KB)');
+    final int base64Size = base64Image.length;
+    print('📄 Kích thước chuỗi base64: $base64Size ký tự (${(base64Size / 1024).toStringAsFixed(2)} KB)');
+
     return Content(role: 'user', parts: [
       {
         'inline_data': {
