@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:zent_gemini/gemini_config.dart';
 import 'package:zent_gemini/gemini_exception.dart';
 import 'gemini_models.dart';
-import 'dart:typed_data';
 
 class Input {
   final String textPrompt;
@@ -77,10 +76,11 @@ class GeminiAI {
     final Content content;
     if(input.image != null) {
       final imageCompress = await _compressImage(input.image!);
+      content = Content.userImage(input.textPrompt, imageCompress);
       if(kDebugMode) {
         print(_fmt(imageCompress.length));
+        print(_fmt(content.image!.length));
       }
-      content = Content.userImage(input.textPrompt, imageCompress);
     }
     else if(input.pdf != null) {
       content = Content.userPdf(input.textPrompt, input.pdf!);
