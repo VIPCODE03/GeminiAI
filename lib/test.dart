@@ -1,18 +1,8 @@
+// import 'dart:convert';
 // import 'dart:typed_data';
 // import 'package:flutter/material.dart';
 // import 'package:file_picker/file_picker.dart';
 // import 'package:flutter_image_compress/flutter_image_compress.dart';
-//
-// Future<Uint8List> compressImageWebP(Uint8List inputBytes) async {
-//   final result = await FlutterImageCompress.compressWithList(
-//     inputBytes,
-//     minWidth: 1000,
-//     minHeight: 800,
-//     quality: 70,
-//     format: CompressFormat.webp,
-//   );
-//   return Uint8List.fromList(result);
-// }
 //
 // void main() {
 //   runApp(const MyApp());
@@ -33,6 +23,16 @@
 //   }
 // }
 //
+// Future<Uint8List> _compressImage(Uint8List inputBytes) async {
+//   final result = await FlutterImageCompress.compressWithList(
+//     inputBytes,
+//     minWidth: 1000,
+//     minHeight: 800,
+//     quality: 50,
+//     format: CompressFormat.webp,
+//   );
+//   return Uint8List.fromList(result);
+// }
 //
 // class ImageCompressWebDemo extends StatefulWidget {
 //   const ImageCompressWebDemo({super.key});
@@ -54,7 +54,7 @@
 //     if (result == null || result.files.isEmpty) return;
 //     final file = result.files.first;
 //     final bytes = file.bytes!;
-//     final compressed = await compressImageWebP(
+//     final compressed = await _compressImage(
 //       bytes,
 //     );
 //

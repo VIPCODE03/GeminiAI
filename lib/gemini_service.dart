@@ -26,7 +26,7 @@ Future<Uint8List> _compressImage(Uint8List inputBytes) async {
     inputBytes,
     minWidth: 1000,
     minHeight: 800,
-    quality: 70,
+    quality: 50,
     format: CompressFormat.webp,
   );
   return Uint8List.fromList(result);
