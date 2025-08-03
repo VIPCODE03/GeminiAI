@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:zent_gemini/gemini_config.dart';
@@ -31,6 +32,8 @@ Future<Uint8List> _compressImage(Uint8List inputBytes) async {
   );
   return Uint8List.fromList(result);
 }
+
+String _fmt(int bytes) => 'GeminiAI-file-size: ${(bytes / 1024).toStringAsFixed(1)} KB';
 
 class GeminiAI {
   /// Cấu hình
@@ -74,6 +77,9 @@ class GeminiAI {
     final Content content;
     if(input.image != null) {
       final imageCompress = await _compressImage(input.image!);
+      if(kDebugMode) {
+        print(_fmt(imageCompress.length));
+      }
       content = Content.userImage(input.textPrompt, imageCompress);
     }
     else if(input.pdf != null) {
