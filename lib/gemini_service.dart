@@ -21,19 +21,13 @@ class Input {
   factory Input.pdf(String textPrompt, Uint8List pdf) => Input(textPrompt: textPrompt, pdf: pdf);
 }
 
-Future<Uint8List> _compressImageBytes(
-    Uint8List imageBytes, {
-      int maxWidth = 800,
-      int maxHeight = 600,
-      int quality = 70,
-      CompressFormat format = CompressFormat.webp,
-    }) async {
+Future<Uint8List> _compressImage(Uint8List inputBytes) async {
   final result = await FlutterImageCompress.compressWithList(
-    imageBytes,
-    minWidth: maxWidth,
-    minHeight: maxHeight,
-    quality: quality,
-    format: format,
+    inputBytes,
+    minWidth: 1000,
+    minHeight: 800,
+    quality: 70,
+    format: CompressFormat.webp,
   );
   return Uint8List.fromList(result);
 }
@@ -79,7 +73,7 @@ class GeminiAI {
     
     final Content content;
     if(input.image != null) {
-      final imageCompress = await _compressImageBytes(input.image!);
+      final imageCompress = await _compressImage(input.image!);
       content = Content.userImage(input.textPrompt, imageCompress);
     }
     else if(input.pdf != null) {
