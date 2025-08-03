@@ -3,6 +3,7 @@
 // import 'package:flutter/material.dart'; // để gọi WidgetsFlutterBinding
 //
 // import 'package:zent_gemini/gemini_config.dart';
+// import 'package:zent_gemini/gemini_models.dart';
 // import 'package:zent_gemini/gemini_service.dart';
 //
 // void main() async {
@@ -18,8 +19,8 @@
 //
 //   try {
 //     final image = await loadImageFromAssets('assets/img.png');
-//     String? response1 = await geminiAI.generateContent(Input(textPrompt: 'Đây là nhân vật nào', image: image));
-//     print('Model: $response1');
+//     final response1 = await geminiAI.generateContent(await Content.build(textPrompt: 'Đây là nhân vật nào', image: image));
+//     print('Model: ${response1?.toJson()}');
 //
 //     final his = geminiAI.chatHistory;
 //     his.forEach((e) => print(e.toJson()));

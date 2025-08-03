@@ -1,11 +1,24 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+
 class Content {
   final String role;
   final List<Map<String, dynamic>> parts;
 
-  Content({required this.role, required this.parts});
+  Content._private({required this.role, required this.parts});
+
+  static Future<Content> build({required String textPrompt, Uint8List? image, Uint8List? pdf}) async {
+    if (image != null) {
+      final imageCompressed = await _compressImage(image);
+      return Content._userImage(textPrompt, imageCompressed);
+    } else if (pdf != null) {
+      return Content._userPdf(textPrompt, pdf);
+    } else {
+      return Content._userText(textPrompt);
+    }
+  }
 
   String? get text {
     for(final part in parts) {
@@ -33,26 +46,18 @@ class Content {
   }
 
   factory Content.fromJson(Map<String, dynamic> json) {
-    return Content(
+    return Content._private(
       role: json['role'] as String,
       parts: (json['parts'] as List).cast<Map<String, dynamic>>(),
     );
   }
 
-  factory Content.modelText(String textPrompt) => Content(role: 'model', parts: [{'text': textPrompt}]);
+  factory Content._userText(String textPrompt) => Content._private(role: 'user', parts: [{'text': textPrompt}]);
 
-  factory Content.userText(String textPrompt) => Content(role: 'user', parts: [{'text': textPrompt}]);
-
-  factory Content.userImage(String? textPrompt, Uint8List image) {
+  factory Content._userImage(String? textPrompt, Uint8List image) {
     final Uint8List bytes = image;
     final base64Image = base64Encode(bytes);
-
-    final int byteSize = image.lengthInBytes;
-    print('📦 Kích thước Uint8List: $byteSize bytes (${(byteSize / 1024).toStringAsFixed(2)} KB)');
-    final int base64Size = base64Image.length;
-    print('📄 Kích thước chuỗi base64: $base64Size ký tự (${(base64Size / 1024).toStringAsFixed(2)} KB)');
-
-    return Content(role: 'user', parts: [
+    return Content._private(role: 'user', parts: [
       {
         'inline_data': {
           'mime_type': 'image/jpeg',
@@ -63,10 +68,10 @@ class Content {
     ]);
   }
 
-  factory Content.userPdf(String? textPrompt, Uint8List pdf) {
+  factory Content._userPdf(String? textPrompt, Uint8List pdf) {
     final Uint8List bytes = pdf;
     final base64Pdf = base64Encode(bytes);
-    return Content(role: 'user', parts: [
+    return Content._private(role: 'user', parts: [
       {
         'inline_data': {
           'mime_type': 'application/pdf',
@@ -76,4 +81,15 @@ class Content {
       {'text': textPrompt},
     ]);
   }
+}
+
+Future<Uint8List> _compressImage(Uint8List inputBytes) async {
+  final result = await FlutterImageCompress.compressWithList(
+    inputBytes,
+    minWidth: 1000,
+    minHeight: 800,
+    quality: 50,
+    format: CompressFormat.webp,
+  );
+  return Uint8List.fromList(result);
 }

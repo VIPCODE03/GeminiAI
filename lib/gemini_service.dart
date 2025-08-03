@@ -1,36 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:zent_gemini/gemini_config.dart';
 import 'package:zent_gemini/gemini_exception.dart';
 import 'gemini_models.dart';
-
-class Input {
-  final String textPrompt;
-  final Uint8List? image;
-  final Uint8List? pdf;
-  Input({
-    required this.textPrompt,
-    this.image,
-    this.pdf
-  });
-
-  factory Input.text(String textPrompt) => Input(textPrompt: textPrompt);
-  factory Input.image(String textPrompt, Uint8List image) => Input(textPrompt: textPrompt, image: image);
-  factory Input.pdf(String textPrompt, Uint8List pdf) => Input(textPrompt: textPrompt, pdf: pdf);
-}
-
-Future<Uint8List> _compressImage(Uint8List inputBytes) async {
-  final result = await FlutterImageCompress.compressWithList(
-    inputBytes,
-    minWidth: 1000,
-    minHeight: 800,
-    quality: 50,
-    format: CompressFormat.webp,
-  );
-  return Uint8List.fromList(result);
-}
 
 class GeminiAI {
   /// Cấu hình
@@ -61,7 +33,7 @@ class GeminiAI {
     };
   }
 
-  Future<String> _buildBody(Input input) async {
+  Future<String> _buildBody(Content content) async {
     final payload = <String, dynamic>{};
 
     if (_systemInstruction != null) {
@@ -70,20 +42,7 @@ class GeminiAI {
     if(_googleSearch) {
       payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
     }
-    
-    final Content content;
-    if(input.image != null) {
-      final imageCompress = await _compressImage(input.image!);
-      final int byteSize = imageCompress.lengthInBytes;
-      print('📦 Kích thước image: $byteSize bytes (${(byteSize / 1024).toStringAsFixed(2)} KB)');
-      content = Content.userImage(input.textPrompt, imageCompress);
-    }
-    else if(input.pdf != null) {
-      content = Content.userPdf(input.textPrompt, input.pdf!);
-    }
-    else {
-      content = Content.userText(input.textPrompt);
-    }
+
     final contents = <Map<String, dynamic>>[];
 
     if (_chatHistory.isNotEmpty) {
@@ -98,15 +57,15 @@ class GeminiAI {
   //- ĐẦU RA VĂN BẢN  ----------------------------------------------------------------------
   ///--------------------------------------------------------------------------------------
   //- Tạo văn bản --------------------------------------------------------------
-  Future<String?> generateContent(Input input) async {
+  Future<Content?> generateContent(Content content) async {
     final url = Uri.parse('${_config.baseUrl}:generateContent');
     final headers = _buildHeaders();
-    final body = await _buildBody(input);
+    final body = await _buildBody(content);
 
     //- Kết quả -
     final response = await http.post(url, headers: headers, body: body);
     if (response.statusCode == 200) {
-      return _getContent(jsonDecode(response.body) as Map<String, dynamic>);
+      return _extractContentFromResponse(jsonDecode(response.body) as Map<String, dynamic>);
     } else {
       _handleException(response.statusCode);
       return null;
@@ -114,17 +73,17 @@ class GeminiAI {
   }
 
   //- Trò chuyện  ---------------------------------------------------------------
-  Future<String?> sendMessage(Input input) async {
+  Future<Content?> sendMessage(Content content) async {
     final url = Uri.parse('${_config.baseUrl}:generateContent');
     final headers = _buildHeaders();
-    final body = await _buildBody(input);
+    final body = await _buildBody(content);
 
     final response = await http.post(url, headers: headers, body: body);
     if (response.statusCode == 200) {
       final content = _extractContentFromResponse(jsonDecode(response.body) as Map<String, dynamic>);
       if (content != null) {
         _chatHistory.add(content);
-        return content.text;
+        return content;
       }
       return null;
     } else {
@@ -133,10 +92,10 @@ class GeminiAI {
     }
   }
 
-  Stream<String?> streamGenerateContent(Input input) async* {
+  Stream<Content?> streamGenerateContent(Content content) async* {
     final url = Uri.parse('${_config.baseUrl.replaceFirst(_config.model, 'gemini-2.0-flash')}:streamGenerateContent?alt=sse');
     final headers = _buildHeaders();
-    final body =  await _buildBody(input);
+    final body =  await _buildBody(content);
 
     try {
       final request = http.Request('POST', url);
@@ -146,7 +105,7 @@ class GeminiAI {
       final streamedResponse = await request.send();
 
       if (streamedResponse.statusCode == 200) {
-        String? lastContent;
+        Content? lastContent;
         await for (final chunk in streamedResponse.stream) {
           final responseData = utf8.decode(chunk);
           final events = responseData.split('\n\n');
@@ -155,7 +114,7 @@ class GeminiAI {
               final jsonData = event.substring(6).trim();
               if (jsonData.isNotEmpty) {
                 try {
-                  lastContent = _getContent(jsonDecode(jsonData) as Map<String, dynamic>);
+                  lastContent = _extractContentFromResponse(jsonDecode(jsonData) as Map<String, dynamic>);
                   yield lastContent;
                 } catch (e) {
                   throw Exception('Error parse JSON in stream: $e');
@@ -247,12 +206,6 @@ class GeminiAI {
   }
 
   //- Xử lý content-------------------------------------------------------------------
-  /// Hàm xử lý lấy content
-  /// [responseJson] là kết quả trả về
-  String? _getContent(Map<String, dynamic> responseJson) {
-    return responseJson['candidates'][0]['content']['parts'][0]['text'] as String?;
-  }
-
   Content? _extractContentFromResponse(Map<String, dynamic> responseJson) {
     try {
       final content = Content.fromJson(responseJson['candidates'][0]['content'] as Map<String, dynamic>);
