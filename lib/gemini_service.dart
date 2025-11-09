@@ -43,7 +43,7 @@ class GeminiAI {
       payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
     }
     payload['generationConfig'] = {
-      'thinkingConfig': -1
+      'thinkingConfig': {'thinkingBudget': -1}
     };
 
     final contents = <Map<String, dynamic>>[];
