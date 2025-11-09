@@ -249,7 +249,8 @@ class GeminiAI {
       case 429:
         if(_loopApis && on429 != null) {
           currentApi++;
-          if(currentApi > _config.apiKeys.length) {
+          print(currentApi);
+          if(currentApi > _config.apiKeys.length - 1) {
             currentApi = 0;
             throw TooManyRequestsException();
           }
