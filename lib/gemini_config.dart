@@ -3,6 +3,9 @@ class GeminiConfig {
   /// API key để xác thực với Gemini API.
   final String apiKey;
 
+  /// Nhiều API key để xác thực với Gemini API.
+  final List<String> apiKeys;
+
   /// Tên model Gemini bạn muốn sử dụng.
   /// Ví dụ: 'gemini-pro'
   final String model;
@@ -13,7 +16,12 @@ class GeminiConfig {
 
   /// Hàm khởi tạo cho class GeminiConfig.
   /// [apiKey] là API key của bạn.
+  /// [apiKeys] là danh sách các API key của bạn.
   /// [model] là tên model Gemini bạn muốn sử dụng.
-  GeminiConfig({required this.apiKey, required this.model})
+  const GeminiConfig({
+    required this.apiKey,
+    this.apiKeys = const [],
+    required this.model
+  })
       : baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/$model';
 }

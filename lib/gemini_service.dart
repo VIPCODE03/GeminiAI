@@ -11,6 +11,12 @@ class GeminiAI {
   /// Constructor.
   GeminiAI(this._config);
 
+  /// Vòng lặp qua API khi quá hạn ngạch
+  int currentApi = 0;
+  bool _loopApis = false;
+  set setLoopApis(bool enable) => _loopApis = enable;
+  bool get loopApis => _loopApis;
+
   /// Lịch sử trò chuyện
   List<Content> _chatHistory = [];
   set setHistory(List<Content> history) => _chatHistory = history;
@@ -34,7 +40,7 @@ class GeminiAI {
   Map<String, String> _buildHeaders() {
     return {
       'Content-Type': 'application/json',
-      'x-goog-api-key': _config.apiKey,
+      'x-goog-api-key': _loopApis ? _config.apiKeys[currentApi] : _config.apiKey,
     };
   }
 
@@ -74,8 +80,7 @@ class GeminiAI {
     if (response.statusCode == 200) {
       return _extractContentFromResponse(jsonDecode(response.body) as Map<String, dynamic>);
     } else {
-      _handleException(response.statusCode);
-      return null;
+      return _handleException(response.statusCode, on429: () => generateContent(content));
     }
   }
 
@@ -229,7 +234,7 @@ class GeminiAI {
   }
 
   //---------------------- Xử lý lỗi  ------------------------------------------
-  void _handleException(int statusCode) {
+  T _handleException<T>(int statusCode, {T Function()? on429}) {
     switch (statusCode) {
       case 400:
         throw BadRequestException();
@@ -242,7 +247,17 @@ class GeminiAI {
       case 406:
         throw NotAcceptableException();
       case 429:
-        throw TooManyRequestsException();
+        if(_loopApis && on429 != null) {
+          currentApi++;
+          if(currentApi > _config.apiKeys.length) {
+            currentApi = 0;
+            throw TooManyRequestsException();
+          }
+          return on429();
+        }
+        else {
+          throw TooManyRequestsException();
+        }
       case 500:
         throw InternalServerErrorException();
       case 502:
