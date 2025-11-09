@@ -99,8 +99,7 @@ class GeminiAI {
       }
       return null;
     } else {
-      _handleException(response.statusCode);
-      return null;
+      return _handleException(response.statusCode, on429: () => generateContent(content));
     }
   }
 
@@ -249,7 +248,6 @@ class GeminiAI {
       case 429:
         if(_loopApis && on429 != null) {
           currentApi++;
-          print(currentApi);
           if(currentApi > _config.apiKeys.length - 1) {
             currentApi = 0;
             throw TooManyRequestsException();
