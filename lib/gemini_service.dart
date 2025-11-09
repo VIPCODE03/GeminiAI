@@ -25,6 +25,11 @@ class GeminiAI {
   set setGoogleSearch(bool enable) => _googleSearch = enable;
   bool get googleSearch => _googleSearch;
 
+  /// Chế độ tư duy
+  bool _thinking = false;
+  set setThinking(bool enable) => _thinking = enable;
+  bool get thinking => _thinking;
+
   //- Tạo nội dung request  -----------------------------------------------------------------
   Map<String, String> _buildHeaders() {
     return {
@@ -42,10 +47,11 @@ class GeminiAI {
     if(_googleSearch) {
       payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
     }
-    payload['generationConfig'] = {
-      'thinkingConfig': {'thinkingBudget': -1}
-    };
-
+    if(_thinking) {
+      payload['generationConfig'] = {
+        'thinkingConfig': {'thinkingBudget': -1}
+      };
+    }
     final contents = <Map<String, dynamic>>[];
 
     if (_chatHistory.isNotEmpty) {
