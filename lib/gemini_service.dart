@@ -47,11 +47,9 @@ class GeminiAI {
     if(_googleSearch) {
       payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
     }
-    if(_thinking) {
-      payload['generationConfig'] = {
-        'thinkingConfig': {'thinkingBudget': -1}
-      };
-    }
+    payload['generationConfig'] = {
+      'thinkingConfig': {'thinkingBudget': _thinking ? -1 : 0}
+    };
     final contents = <Map<String, dynamic>>[];
 
     if (_chatHistory.isNotEmpty) {
