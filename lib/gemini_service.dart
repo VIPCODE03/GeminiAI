@@ -32,6 +32,8 @@ class GeminiAI {
   bool get googleSearch => _googleSearch;
 
   /// Chế độ tư duy
+  int? _thinkingBudget;
+  set setThinkingBudget(int? budget) => _thinkingBudget = budget;
   bool _thinking = false;
   set setThinking(bool enable) => _thinking = enable;
   bool get thinking => _thinking;
@@ -54,7 +56,7 @@ class GeminiAI {
       payload['tools'] = [{'google_search': {}}, {'url_context': {}}];
     }
     payload['generationConfig'] = {
-      'thinkingConfig': {'thinkingBudget': _thinking ? -1 : 0}
+      'thinkingConfig': {'thinkingBudget': _thinking ? _thinkingBudget ?? -1 : 0}
     };
     final contents = <Map<String, dynamic>>[];
 
